@@ -1,25 +1,48 @@
 const express = require("express");
-const movies = require("./movies");
+const movies = require("./src/movies");
 const port = 3000;
 const app = express();
+const connection = require("./src/config");
 
+// We try to connect to the Database
+connection.connect(function (err) {
+  if (err) {
+    console.error("error connecting: " + err.stack);
+    return;
+  }
+  console.log("connected as id " + connection.threadId);
+});
+
+// Main route
 app.get("/", (req, res) => {
   res.send("Welcome to my favorite movie list");
 });
 
+// This route will send back all the movies
 app.get("/api/movies", (req, res) => {
-  res.status(200).json(movies);
+  connection.query("SELECT * from movies", (err, results) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error retrieving data");
+    } else {
+      res.status(200).json(results);
+    }
+  });
 });
 
 app.get("/api/movies/:id", (req, res) => {
-  const movie = movies.find((movie) => {
-    return movie.id === Number(req.params.id);
-  });
-  if (movie) {
-    res.status(200).json(movie);
-  } else {
-    res.status(404).send("Not found");
-  }
+  connection.query(
+    "SELECT * from movies WHERE id=?",
+    [req.params.id],
+    (err, results) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Error retrieving data");
+      } else {
+        res.status(200).json(results);
+      }
+    }
+  );
 });
 
 app.get("/api/search", (req, res) => {
